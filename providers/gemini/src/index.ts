@@ -34,7 +34,9 @@ export class GeminiLlmProvider implements LlmProvider {
       },
     );
     if (!res.ok) {
-      throw new Error(`gemini ${this.model}: ${res.status} ${await res.text()}`);
+      throw new Error(
+        `gemini ${this.model}: ${res.status} ${await res.text()}`,
+      );
     }
 
     const json = (await res.json()) as GeminiResponse;

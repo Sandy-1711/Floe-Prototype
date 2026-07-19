@@ -66,7 +66,10 @@ app.post("/api/tts", async (c) => {
 
 app.onError((err, c) => {
   console.error(err);
-  return c.json({ error: err instanceof Error ? err.message : String(err) }, 500);
+  return c.json(
+    { error: err instanceof Error ? err.message : String(err) },
+    500,
+  );
 });
 
 serve({ fetch: app.fetch, port: env.port }, (info) => {

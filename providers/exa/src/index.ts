@@ -9,7 +9,7 @@ interface ExaResponse {
 }
 
 export class ExaSearchProvider implements SearchProvider {
-  constructor(private readonly apiKey: string) { }
+  constructor(private readonly apiKey: string) {}
 
   async search(query: string, limit = 3): Promise<SearchResults> {
     const res = await fetch("https://api.exa.ai/search", {

@@ -11,7 +11,9 @@ export interface LlmProvider {
   readonly model: string;
   generate(req: GenerateRequest): Promise<GenerateResult>;
   /** Optional token stream; yields text chunks and returns cost/usage when done. */
-  generateStream?(req: GenerateRequest): AsyncGenerator<string, GenerateMeta | void>;
+  generateStream?(
+    req: GenerateRequest,
+  ): AsyncGenerator<string, GenerateMeta | void>;
 }
 
 export interface SearchProvider {

@@ -16,7 +16,9 @@ export interface Container {
 export function createContainer(): Container {
   const llm = new GeminiLlmProvider(env.geminiApiKey, env.geminiModel);
   const search = new ExaSearchProvider(env.exaApiKey);
-  const stt = new SarvamSttProvider(env.sarvamApiKey, { languageCode: "en-IN" });
+  const stt = new SarvamSttProvider(env.sarvamApiKey, {
+    languageCode: "en-IN",
+  });
   const tts = new SarvamTtsProvider(env.sarvamApiKey, {
     targetLanguageCode: "en-IN",
   });

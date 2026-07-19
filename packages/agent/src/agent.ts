@@ -37,21 +37,46 @@ export class ResearchAgent {
 
     for (let step = 1; step <= this.maxSteps; step++) {
       steps = step;
-      const { decision, cost } = await this.decide(question, observations, step);
+      const { decision, cost } = await this.decide(
+        question,
+        observations,
+        step,
+      );
       yield { type: "thought", step, text: decision.thought };
-      if (cost) yield { type: "cost", stage: "reason", amount: cost, total: (total += cost) };
+      if (cost)
+        yield {
+          type: "cost",
+          stage: "reason",
+          amount: cost,
+          total: (total += cost),
+        };
 
       if (decision.action.type === "answer") break;
 
       const query = decision.action.query;
-      const { hits, cost: searchCost } = await this.cfg.search.search(query, this.searchLimit);
+      const { hits, cost: searchCost } = await this.cfg.search.search(
+        query,
+        this.searchLimit,
+      );
       yield { type: "search", step, query, hits, cost: searchCost };
-      if (searchCost) yield { type: "cost", stage: "search", amount: searchCost, total: (total += searchCost) };
+      if (searchCost)
+        yield {
+          type: "cost",
+          stage: "search",
+          amount: searchCost,
+          total: (total += searchCost),
+        };
       observations.push(renderObservation(query, hits));
     }
 
     const meta = yield* this.streamAnswer(question, observations);
-    if (meta.cost) yield { type: "cost", stage: "answer", amount: meta.cost, total: (total += meta.cost) };
+    if (meta.cost)
+      yield {
+        type: "cost",
+        stage: "answer",
+        amount: meta.cost,
+        total: (total += meta.cost),
+      };
     yield { type: "answer", text: meta.text };
 
     total = round(total);
@@ -66,7 +91,9 @@ export class ResearchAgent {
   ): Promise<{ decision: AgentDecision; cost?: number }> {
     const last = step === this.maxSteps;
     const res = await this.cfg.llm.generate({
-      system: DECIDE_SYSTEM + (last ? "\nThis is your last turn: choose answer." : ""),
+      system:
+        DECIDE_SYSTEM +
+        (last ? "\nThis is your last turn: choose answer." : ""),
       prompt: promptWith(question, observations),
       json: true,
       maxOutputTokens: 300,
@@ -93,7 +120,10 @@ export class ResearchAgent {
         yield { type: "delta", text: next.value };
         next = await iter.next();
       }
-      return { text: full.trim(), cost: next.value ? next.value.cost : undefined };
+      return {
+        text: full.trim(),
+        cost: next.value ? next.value.cost : undefined,
+      };
     }
 
     const res = await this.cfg.llm.generate(req);
@@ -108,7 +138,9 @@ function promptWith(question: string, observations: string[]): string {
 }
 
 function renderObservation(query: string, hits: SearchHit[]): string {
-  const body = hits.map((h, i) => `  [${i + 1}] ${h.title} — ${h.snippet}`).join("\n");
+  const body = hits
+    .map((h, i) => `  [${i + 1}] ${h.title} — ${h.snippet}`)
+    .join("\n");
   return `search("${query}"):\n${body || "  (no results)"}`;
 }
 
@@ -122,7 +154,10 @@ function parseDecision(text: string, question: string): AgentDecision {
       /* fall through */
     }
   }
-  return { thought: "", action: { type: "answer", text: text.trim() || question } };
+  return {
+    thought: "",
+    action: { type: "answer", text: text.trim() || question },
+  };
 }
 
 // Extract the first balanced {...} block so a model that dumps several objects

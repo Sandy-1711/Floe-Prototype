@@ -1,12 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import {
-  runAgent,
-  synthesize,
-  transcribe,
-  type AgentEvent,
-} from "./lib/api";
+import { runAgent, synthesize, transcribe, type AgentEvent } from "./lib/api";
 import { useRecorder } from "./lib/useRecorder";
 import styles from "./page.module.css";
 
@@ -107,7 +102,10 @@ export default function Page() {
     }
   }
 
-  function handle(event: AgentEvent, patch: (fn: (m: Message) => Message) => void) {
+  function handle(
+    event: AgentEvent,
+    patch: (fn: (m: Message) => Message) => void,
+  ) {
     switch (event.type) {
       case "thought":
         patch((m) => ({
@@ -120,7 +118,11 @@ export default function Page() {
           ...m,
           trace: [
             ...(m.trace ?? []),
-            { kind: "search", text: event.query, meta: `${event.hits.length} results` },
+            {
+              kind: "search",
+              text: event.query,
+              meta: `${event.hits.length} results`,
+            },
           ],
         }));
         break;
@@ -177,7 +179,8 @@ export default function Page() {
       <div className={styles.chat} ref={scrollRef}>
         {messages.length === 0 && (
           <div className={styles.hint}>
-            Try: “What is the x402 payment protocol?” — tap the mic or type below.
+            Try: “What is the x402 payment protocol?” — tap the mic or type
+            below.
           </div>
         )}
 
@@ -194,7 +197,9 @@ export default function Page() {
                     <div key={i} className={styles.traceRow}>
                       <span className={styles.tag}>{t.kind}</span>
                       <span className={styles.traceText}>{t.text}</span>
-                      {t.meta && <span className={styles.dim}> · {t.meta}</span>}
+                      {t.meta && (
+                        <span className={styles.dim}> · {t.meta}</span>
+                      )}
                     </div>
                   ))}
                 </div>

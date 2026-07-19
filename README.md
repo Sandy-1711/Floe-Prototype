@@ -41,11 +41,11 @@ cp .env.example .env   # then fill in the three keys
 
 `.env`:
 
-| var | where |
-| --- | --- |
+| var              | where                              |
+| ---------------- | ---------------------------------- |
 | `GEMINI_API_KEY` | https://aistudio.google.com/apikey |
-| `EXA_API_KEY` | https://dashboard.exa.ai/api-keys |
-| `SARVAM_API_KEY` | https://dashboard.sarvam.ai |
+| `EXA_API_KEY`    | https://dashboard.exa.ai/api-keys  |
+| `SARVAM_API_KEY` | https://dashboard.sarvam.ai        |
 
 ## Run
 
@@ -60,8 +60,8 @@ Open http://localhost:3000, tap the mic (or type), and the agent answers by voic
 
 ## API
 
-| method | route | body | returns |
-| --- | --- | --- | --- |
-| POST | `/api/stt` | `multipart` with `file` | `{ text, languageCode, words[] }` |
-| POST | `/api/agent` | `{ question }` | NDJSON stream of `{type: thought \| search \| answer}` |
-| POST | `/api/tts` | `{ text }` | `audio/wav` |
+| method | route        | body                    | returns                                                |
+| ------ | ------------ | ----------------------- | ------------------------------------------------------ |
+| POST   | `/api/stt`   | `multipart` with `file` | `{ text, languageCode, words[] }`                      |
+| POST   | `/api/agent` | `{ question }`          | NDJSON stream of `{type: thought \| search \| answer}` |
+| POST   | `/api/tts`   | `{ text }`              | `audio/wav`                                            |
