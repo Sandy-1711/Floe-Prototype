@@ -74,18 +74,36 @@ export default function Page() {
     const patch = (fn: (m: Message) => Message) =>
       setMessages((list) => list.map((m) => (m.id === answerId ? fn(m) : m)));
 
-    let answerText = "";
+    // Reveal the answer at a steady pace, decoupled from how the network delivers
+    // chunks — some browsers buffer small streamed responses and hand them over in
+    // one lump, which would otherwise render the whole block at once.
+    let target = "";
+    let shown = 0;
+    let done = false;
+    const reveal = (async () => {
+      while (!done || shown < target.length) {
+        if (shown < target.length) {
+          shown += Math.max(1, Math.ceil((target.length - shown) / 25));
+          const slice = target.slice(0, shown);
+          patch((m) => ({ ...m, text: slice }));
+        }
+        await new Promise((r) => setTimeout(r, 20));
+      }
+    })();
+
     try {
       for await (const event of runAgent(q)) {
-        if (event.type === "delta") answerText += event.text;
-        handle(event, patch);
+        if (event.type === "delta") target += event.text;
+        else handle(event, patch);
       }
     } catch (err) {
       setStatus(err instanceof Error ? err.message : String(err));
     } finally {
+      done = true;
+      await reveal;
       patch((m) => ({ ...m, streaming: false }));
       setRunning(false);
-      if (answerText.trim() && speakerOn) void speak(answerText);
+      if (target.trim() && speakerOn) void speak(target);
     }
   }
 
@@ -105,9 +123,6 @@ export default function Page() {
             { kind: "search", text: event.query, meta: `${event.hits.length} results` },
           ],
         }));
-        break;
-      case "delta":
-        patch((m) => ({ ...m, text: m.text + event.text }));
         break;
       case "cost":
         patch((m) => ({ ...m, cost: event.total }));
