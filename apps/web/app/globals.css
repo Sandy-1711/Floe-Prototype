@@ -1,13 +1,16 @@
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0b0d10;
+  --panel: #14181d;
+  --border: #262c34;
+  --text: #e6e8eb;
+  --muted: #8b93a1;
+  --accent: #4cc9f0;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
 }
 
 html,
@@ -17,34 +20,13 @@ body {
 }
 
 body {
-  color: var(--foreground);
+  color: var(--text);
   background: var(--background);
-}
-
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
+  color-scheme: dark;
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
 }
 
 a {
-  color: inherit;
+  color: var(--accent);
   text-decoration: none;
-}
-
-.imgDark {
-  display: none;
-}
-
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
-
-  .imgLight {
-    display: none;
-  }
-  .imgDark {
-    display: unset;
-  }
 }
