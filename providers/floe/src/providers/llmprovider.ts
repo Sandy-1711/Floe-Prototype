@@ -31,11 +31,10 @@ export class FloeLLMProvider implements LlmProvider {
             promptTokens: data.usage?.prompt_tokens ?? 0,
             completionTokens: data.usage?.completion_tokens ?? 0,
         };
-        const cost = await this.#cost(response, usage);
         return {
             text: data.choices[0]?.message.content ?? "",
             usage,
-            cost,
+            cost: await this.#cost(response, usage),
         };
     }
 
@@ -100,7 +99,6 @@ export class FloeLLMProvider implements LlmProvider {
                 }),
             });
             const json = (await res.json()) as { cost_usdc?: string | number };
-            console.log(`FloeLLMProvider: estimated cost for ${inputTokens} input tokens and ${outputTokens} output tokens: ${json.cost_usdc}`);
             return json.cost_usdc !== undefined ? Number(json.cost_usdc) : undefined;
         } catch {
             return undefined;
