@@ -9,6 +9,11 @@ export interface GenerateRequest {
   prompt: string;
   json?: boolean;
   maxOutputTokens?: number;
+  maxTokens?: number;
+  temperature?: number;
+  topP?: number;
+  n?: number;
+  stop?: string | string[];
 }
 
 export interface GenerateResult {
