@@ -24,6 +24,13 @@ export interface GenerateRequest {
 export interface GenerateResult {
   text: string;
   usage?: { promptTokens: number; completionTokens: number };
+  cost?: number;
+}
+
+/** Returned by a streaming generate once the token stream ends. */
+export interface GenerateMeta {
+  cost?: number;
+  usage?: { promptTokens: number; completionTokens: number };
 }
 
 export interface WordTiming {
@@ -47,7 +54,7 @@ export interface Speech {
 
 export type AgentAction =
   | { type: "search"; query: string }
-  | { type: "answer"; text: string };
+  | { type: "answer"; text?: string };
 
 export interface AgentDecision {
   thought: string;
@@ -56,11 +63,15 @@ export interface AgentDecision {
 
 export type AgentEvent =
   | { type: "thought"; step: number; text: string }
-  | { type: "search"; step: number; query: string; hits: SearchHit[] }
+  | { type: "search"; step: number; query: string; hits: SearchHit[]; cost?: number }
+  | { type: "delta"; text: string }
   | { type: "answer"; text: string }
+  | { type: "cost"; stage: string; amount: number; total: number }
+  | { type: "done"; totalCost: number }
   | { type: "error"; message: string };
 
 export interface AgentResult {
   answer: string;
   steps: number;
+  totalCost: number;
 }

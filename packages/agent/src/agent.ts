@@ -3,6 +3,7 @@ import type {
   AgentDecision,
   AgentEvent,
   AgentResult,
+  GenerateRequest,
   SearchHit,
 } from "./types.ts";
 
@@ -13,12 +14,12 @@ export interface ResearchAgentConfig {
   searchLimit?: number;
 }
 
-const DECIDE_SYSTEM = `You are a research agent that answers a user's question by searching the web.
-On each turn, reply with ONLY a JSON object:
-  {"thought": string, "action": {"type": "search", "query": string}}
-  {"thought": string, "action": {"type": "answer", "text": string}}
-Search when you need facts you don't yet have. Answer once the observations are
-enough. The final answer must be 2-4 spoken sentences: no markdown, no lists.`;
+const DECIDE_SYSTEM = `You are a research agent. Each turn, decide your NEXT single action and reply with ONLY one JSON object, nothing before or after:
+  {"thought": "<one short sentence>", "action": {"type": "search", "query": "<query>"}}
+  {"thought": "<one short sentence>", "action": {"type": "answer"}}
+Use "search" when you still need facts. Use "answer" once the observations are enough. Output exactly one JSON object.`;
+
+const ANSWER_SYSTEM = `You are a concise voice assistant. Using the observations, answer the question in 2-4 spoken sentences. No markdown, no lists, no citations.`;
 
 export class ResearchAgent {
   private readonly maxSteps: number;
@@ -31,54 +32,73 @@ export class ResearchAgent {
 
   async *run(question: string): AsyncGenerator<AgentEvent, AgentResult> {
     const observations: string[] = [];
+    let total = 0;
+    let steps = 0;
 
     for (let step = 1; step <= this.maxSteps; step++) {
-      const decision = await this.decide(question, observations, step);
+      steps = step;
+      const { decision, cost } = await this.decide(question, observations, step);
       yield { type: "thought", step, text: decision.thought };
+      if (cost) yield { type: "cost", stage: "reason", amount: cost, total: (total += cost) };
 
-      if (decision.action.type === "answer") {
-        yield { type: "answer", text: decision.action.text };
-        return { answer: decision.action.text, steps: step };
-      }
+      if (decision.action.type === "answer") break;
 
       const query = decision.action.query;
-      const hits = await this.cfg.search.search(query, this.searchLimit);
-      yield { type: "search", step, query, hits };
+      const { hits, cost: searchCost } = await this.cfg.search.search(query, this.searchLimit);
+      yield { type: "search", step, query, hits, cost: searchCost };
+      if (searchCost) yield { type: "cost", stage: "search", amount: searchCost, total: (total += searchCost) };
       observations.push(renderObservation(query, hits));
     }
 
-    const answer = await this.forceAnswer(question, observations);
-    yield { type: "answer", text: answer };
-    return { answer, steps: this.maxSteps };
+    const meta = yield* this.streamAnswer(question, observations);
+    if (meta.cost) yield { type: "cost", stage: "answer", amount: meta.cost, total: (total += meta.cost) };
+    yield { type: "answer", text: meta.text };
+
+    total = round(total);
+    yield { type: "done", totalCost: total };
+    return { answer: meta.text, steps, totalCost: total };
   }
 
   private async decide(
     question: string,
     observations: string[],
     step: number,
-  ): Promise<AgentDecision> {
+  ): Promise<{ decision: AgentDecision; cost?: number }> {
     const last = step === this.maxSteps;
     const res = await this.cfg.llm.generate({
-      system: DECIDE_SYSTEM + (last ? "\nThis is your last turn: you must answer." : ""),
+      system: DECIDE_SYSTEM + (last ? "\nThis is your last turn: choose answer." : ""),
       prompt: promptWith(question, observations),
       json: true,
-      maxOutputTokens: 512,
+      maxOutputTokens: 300,
     });
-    return parseDecision(res.text, question);
+    return { decision: parseDecision(res.text, question), cost: res.cost };
   }
 
-  private async forceAnswer(
+  private async *streamAnswer(
     question: string,
     observations: string[],
-  ): Promise<string> {
-    const res = await this.cfg.llm.generate({
-      system:
-        "Answer the question in 2-4 spoken sentences using the observations. " +
-        "No markdown, no lists.",
+  ): AsyncGenerator<AgentEvent, { text: string; cost?: number }> {
+    const req: GenerateRequest = {
+      system: ANSWER_SYSTEM,
       prompt: promptWith(question, observations),
       maxOutputTokens: 400,
-    });
-    return res.text.trim();
+    };
+
+    if (this.cfg.llm.generateStream) {
+      const iter = this.cfg.llm.generateStream(req);
+      let full = "";
+      let next = await iter.next();
+      while (!next.done) {
+        full += next.value;
+        yield { type: "delta", text: next.value };
+        next = await iter.next();
+      }
+      return { text: full.trim(), cost: next.value ? next.value.cost : undefined };
+    }
+
+    const res = await this.cfg.llm.generate(req);
+    yield { type: "delta", text: res.text };
+    return { text: res.text.trim(), cost: res.cost };
   }
 }
 
@@ -93,30 +113,51 @@ function renderObservation(query: string, hits: SearchHit[]): string {
 }
 
 function parseDecision(text: string, question: string): AgentDecision {
-  const raw = extractJson(text);
-  if (raw && isDecision(raw)) return raw;
-  // A non-JSON reply is treated as the model's final answer.
+  const block = firstJsonObject(text);
+  if (block) {
+    try {
+      const parsed = JSON.parse(block);
+      if (isDecision(parsed)) return parsed;
+    } catch {
+      /* fall through */
+    }
+  }
   return { thought: "", action: { type: "answer", text: text.trim() || question } };
 }
 
-function extractJson(text: string): unknown {
-  try {
-    return JSON.parse(text);
-  } catch {
-    const match = text.match(/\{[\s\S]*\}/);
-    if (!match) return null;
-    try {
-      return JSON.parse(match[0]);
-    } catch {
-      return null;
+// Extract the first balanced {...} block so a model that dumps several objects
+// (common with smaller models) still yields one clean decision.
+function firstJsonObject(text: string): string | null {
+  const start = text.indexOf("{");
+  if (start < 0) return null;
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (ch === "\\") escaped = true;
+      else if (ch === '"') inString = false;
+    } else if (ch === '"') {
+      inString = true;
+    } else if (ch === "{") {
+      depth++;
+    } else if (ch === "}") {
+      depth--;
+      if (depth === 0) return text.slice(start, i + 1);
     }
   }
+  return null;
 }
 
 function isDecision(v: unknown): v is AgentDecision {
   const d = v as AgentDecision;
   if (!d || typeof d.thought !== "string" || !d.action) return false;
   if (d.action.type === "search") return typeof d.action.query === "string";
-  if (d.action.type === "answer") return typeof d.action.text === "string";
-  return false;
+  return d.action.type === "answer";
+}
+
+function round(n: number): number {
+  return Math.round(n * 1e6) / 1e6;
 }

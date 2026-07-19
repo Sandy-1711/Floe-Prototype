@@ -1,68 +1,107 @@
-import type { GenerateRequest, GenerateResult } from "@repo/agent";
+import type { GenerateMeta, GenerateRequest, GenerateResult } from "@repo/agent";
 import { LlmProvider } from "@repo/agent";
 import OpenAI from "openai";
 
-export interface EstimateResponse {
-    cost_usdc: number;
-    provider: string;
-    rail: string;
-}
+const BASE_URL = "https://credit-api.floelabs.xyz/v1";
 
 export class FloeLLMProvider implements LlmProvider {
+  readonly model: string;
+  #client: OpenAI;
+  #apiKey: string;
 
-    #client: OpenAI;
-    #apiKey: string;
-    #model: string;
+  constructor(apiKey: string, model: string) {
+    this.model = model;
+    this.#apiKey = apiKey;
+    this.#client = new OpenAI({ baseURL: BASE_URL, apiKey });
+  }
 
-    constructor(private readonly apiKey: string, public readonly model: string) {
-        this.#model = model;
-        this.#apiKey = apiKey;
-        this.#client = new OpenAI({
-            baseURL: "https://credit-api.floelabs.xyz/v1",
-            apiKey: this.apiKey,
-        });
-    }
-    async generate(req: GenerateRequest): Promise<GenerateResult> {
+  async generate(req: GenerateRequest): Promise<GenerateResult> {
+    const { data, response } = await this.#client.chat.completions
+      .create({
+        model: this.model,
+        messages: this.#messages(req),
+        max_tokens: req.maxOutputTokens ?? req.maxTokens,
+        ...(req.temperature !== undefined && { temperature: req.temperature }),
+        ...(req.topP !== undefined && { top_p: req.topP }),
+        ...(req.stop !== undefined && { stop: req.stop }),
+      })
+      .withResponse();
 
+    const usage = {
+      promptTokens: data.usage?.prompt_tokens ?? 0,
+      completionTokens: data.usage?.completion_tokens ?? 0,
+    };
+    return {
+      text: data.choices[0]?.message.content ?? "",
+      usage,
+      cost: await this.#cost(response, usage),
+    };
+  }
 
-        const messageBody: OpenAI.Chat.ChatCompletionMessageParam[] = [];
-        if (req.system) {
-            messageBody.push({ role: "system", content: req.system });
-        }
-        messageBody.push({ role: "user", content: req.prompt });
+  async *generateStream(
+    req: GenerateRequest,
+  ): AsyncGenerator<string, GenerateMeta> {
+    const stream = await this.#client.chat.completions.create({
+      model: this.model,
+      messages: this.#messages(req),
+      max_tokens: req.maxOutputTokens ?? req.maxTokens,
+      stream: true,
+      stream_options: { include_usage: true },
+      ...(req.temperature !== undefined && { temperature: req.temperature }),
+    });
 
-        const requestBody: OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming = {
-            model: this.#model,
-            messages: messageBody,
-            ...(req?.maxTokens !== undefined && { max_tokens: req.maxTokens }),
-            ...(req?.temperature !== undefined && { temperature: req.temperature }),
-            ...(req?.topP !== undefined && { top_p: req.topP }),
-            ...(req?.n !== undefined && { n: req.n }),
-            ...(req?.stop !== undefined && { stop: req.stop }),
+    let usage = { promptTokens: 0, completionTokens: 0 };
+    for await (const chunk of stream) {
+      const delta = chunk.choices[0]?.delta?.content;
+      if (delta) yield delta;
+      if (chunk.usage) {
+        usage = {
+          promptTokens: chunk.usage.prompt_tokens ?? 0,
+          completionTokens: chunk.usage.completion_tokens ?? 0,
         };
-
-        const res = await this.#client.chat.completions.create(requestBody);
-
-        const responseText = res.choices[0]?.message.content || "";
-        return {
-            text: responseText,
-            usage: {
-                promptTokens: res.usage?.prompt_tokens ?? 0,
-                completionTokens: res.usage?.completion_tokens ?? 0,
-            }
-        }
+      }
     }
+    return { usage, cost: await this.#estimate(usage.promptTokens, usage.completionTokens) };
+  }
 
-    async estimate(req: GenerateRequest): Promise<EstimateResponse> {
-        const res = await fetch("https://credit-api.floelabs.xyz/v1/estimate", {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${this.#apiKey}`,
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ "model": this.#model, "input_tokens": 1200, "output_tokens": 400 }),
-        });
-        const json = await res.json();
-        return json;
+  #messages(req: GenerateRequest): OpenAI.Chat.ChatCompletionMessageParam[] {
+    const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [];
+    if (req.system) messages.push({ role: "system", content: req.system });
+    messages.push({ role: "user", content: req.prompt });
+    return messages;
+  }
+
+  // Prefer Floe's payment header; fall back to a free estimate on the real usage.
+  async #cost(
+    response: Response,
+    usage: { promptTokens: number; completionTokens: number },
+  ): Promise<number | undefined> {
+    const header = response.headers.get("x-floe-payment-amount");
+    if (header) return parseFloat(header);
+    return this.#estimate(usage.promptTokens, usage.completionTokens);
+  }
+
+  async #estimate(
+    inputTokens: number,
+    outputTokens: number,
+  ): Promise<number | undefined> {
+    try {
+      const res = await fetch(`${BASE_URL}/estimate`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.#apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: this.model,
+          input_tokens: inputTokens,
+          output_tokens: outputTokens,
+        }),
+      });
+      const json = (await res.json()) as { cost_usdc?: string | number };
+      return json.cost_usdc !== undefined ? Number(json.cost_usdc) : undefined;
+    } catch {
+      return undefined;
     }
+  }
 }
