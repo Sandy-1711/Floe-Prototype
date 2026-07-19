@@ -9,8 +9,7 @@
     "./server": "./src/server.ts"
   },
   "scripts": {
-    "check-types": "tsc --noEmit",
-    "demo": "node --experimental-strip-types --env-file=../../.env src/demo.ts"
+    "check-types": "tsc --noEmit"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:^",

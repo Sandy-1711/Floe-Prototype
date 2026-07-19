@@ -7,9 +7,7 @@ import {
   round6,
   MODEL_PRICES,
 } from "./pricing.ts";
-import { shimLlm, shimSearch, type ShimHint } from "./shim.ts";
 import type {
-  FloeMode,
   FloeResult,
   LlmRequest,
   LlmResponse,
@@ -23,12 +21,10 @@ import type {
 import type { FloeAgent, BalanceResult } from "floe-agent";
 
 export interface FloeClientOptions {
-  /** "shim" runs fully offline with zero spend; "real" hits Floe + Gemini. */
-  mode: FloeMode;
-  /** FLOE_KEY (floe_* runtime key) — required in real mode for proxy calls. */
-  floeApiKey?: string;
-  /** Google AI Studio key — required in real mode for the Gemini adapter. */
-  geminiApiKey?: string;
+  /** FLOE_KEY (floe_* runtime key) — pays vendors through Floe's proxy. */
+  floeApiKey: string;
+  /** Google AI Studio key — used by the Gemini adapter (Floe doesn't front Gemini). */
+  geminiApiKey: string;
   /** Optional Floe credit-API base URL override (defaults to production). */
   baseUrl?: string;
   ledger?: Ledger;
@@ -37,18 +33,21 @@ export interface FloeClientOptions {
   taskId?: string;
 }
 
+/**
+ * One door to money. The agent calls `llm()` / `search()` and every call lands as a
+ * single row on one ledger, whether Floe settled it directly (search) or our Gemini
+ * adapter did (LLM). Payments go through the official `floe-agent` SDK.
+ */
 export class FloeClient {
-  readonly mode: FloeMode;
   readonly ledger: Ledger;
   readonly guard?: BudgetGuard;
-  private readonly floeApiKey?: string;
-  private readonly geminiApiKey?: string;
+  private readonly floeApiKey: string;
+  private readonly geminiApiKey: string;
   private readonly baseUrl?: string;
   private readonly taskId: string;
   private _floe?: FloeAgent;
 
   constructor(opts: FloeClientOptions) {
-    this.mode = opts.mode;
     this.ledger = opts.ledger ?? new Ledger();
     this.guard = opts.guard;
     this.floeApiKey = opts.floeApiKey;
@@ -57,9 +56,8 @@ export class FloeClient {
     this.taskId = opts.taskId ?? crypto.randomUUID();
   }
 
-  /** Lazily construct the official Floe SDK client (real mode only). */
+  /** Lazily construct the official Floe SDK client. */
   private async floe(): Promise<FloeAgent> {
-    if (!this.floeApiKey) throw new Error("real mode needs floeApiKey (FLOE_KEY)");
     if (!this._floe) {
       const { FloeAgent } = await import("floe-agent");
       this._floe = new FloeAgent({
@@ -105,11 +103,16 @@ export class FloeClient {
     return event;
   }
 
-  private blocked<T>(vendor: string, label: string, model?: string): FloeResult<T> {
-    // Mirrors Floe's server-side spend control: 402 before any money moves.
+  private fail<T>(
+    status: number,
+    vendor: string,
+    label: string,
+    meta: Record<string, unknown>,
+    model?: string,
+  ): FloeResult<T> {
     return {
       ok: false,
-      status: 402,
+      status,
       data: undefined as T,
       amountUsd: 0,
       event: {
@@ -119,90 +122,69 @@ export class FloeClient {
         label,
         model,
         amountUsd: 0,
-        source: this.mode === "real" ? "floe-proxy" : "shim",
-        meta: { blocked: true, reason: "spend-control" },
+        source: "floe-proxy",
+        meta,
       },
     };
   }
 
-  /** LLM call. Gemini routes through our Floe-contract adapter; everything settles the same. */
+  /**
+   * LLM call, routed through the Gemini-for-Floe adapter. Settles the same way a
+   * native Floe vendor would, so the ledger can't tell the difference.
+   */
   async llm(p: {
     label: string;
     model: string;
     request: LlmRequest;
-    kind?: "plan" | "synthesize";
-    shimHint?: ShimHint;
   }): Promise<FloeResult<LlmResponse>> {
     const estimate = this.estimateLlm(p.model, p.request);
-    if (this.preflight(estimate)) return this.blocked("gemini", p.label, p.model);
-
-    let resp: LlmResponse;
-    let source: SpendSource;
-    if (this.mode === "real") {
-      if (!this.geminiApiKey) {
-        throw new Error(
-          "real mode needs geminiApiKey for the Gemini adapter (set GEMINI_API_KEY)",
-        );
-      }
-      resp = await geminiGenerate(p.request, {
-        apiKey: this.geminiApiKey,
-        model: p.model,
-      });
-      source = "adapter";
-    } else {
-      resp = shimLlm(p.request, p.model, p.kind, p.shimHint);
-      source = "shim";
+    // Mirrors Floe's server-side spend control: 402 before any money moves.
+    if (this.preflight(estimate)) {
+      return this.fail(402, "gemini", p.label, { blocked: true, reason: "spend-control" }, p.model);
     }
 
+    const resp = await geminiGenerate(p.request, {
+      apiKey: this.geminiApiKey,
+      model: p.model,
+    });
     const amountUsd = priceModelCall(resp.model, resp.usage);
     const event = this.settle({
       vendor: "gemini",
       label: p.label,
       model: resp.model,
       amountUsd,
-      source,
+      source: "adapter",
       meta: { usage: resp.usage },
     });
     return { ok: true, status: 200, data: resp, amountUsd, event };
   }
 
-  /** Web search, paid per call. Real mode routes through the Floe proxy (SDK). */
+  /** Web search, paid per call through Floe's proxy. */
   async search(p: {
     label: string;
     vendor: "exa" | "tavily";
     query: string;
   }): Promise<FloeResult<SearchHit[]>> {
     const estimate = priceFlatVendor(p.vendor);
-    if (this.preflight(estimate)) return this.blocked(p.vendor, p.label);
-
-    let hits: SearchHit[];
-    let amountUsd: number;
-    let source: SpendSource;
-    if (this.mode === "real") {
-      try {
-        const out = await this.proxySearch(p.vendor, p.query);
-        hits = out.hits;
-        amountUsd = out.amountUsd || estimate;
-        source = "floe-proxy";
-      } catch {
-        // Never let a proxy hiccup kill the run — fall back and mark it.
-        hits = shimSearch(p.query, p.vendor);
-        amountUsd = estimate;
-        source = "shim";
-      }
-    } else {
-      hits = shimSearch(p.query, p.vendor);
-      amountUsd = estimate;
-      source = "shim";
+    if (this.preflight(estimate)) {
+      return this.fail(402, p.vendor, p.label, { blocked: true, reason: "spend-control" });
     }
 
-    const event = this.settle({
-      vendor: p.vendor,
-      label: p.label,
-      amountUsd,
-      source,
-    });
-    return { ok: true, status: 200, data: hits, amountUsd, event };
+    try {
+      const { hits, amountUsd, status } = await this.proxySearch(p.vendor, p.query);
+      const event = this.settle({
+        vendor: p.vendor,
+        label: p.label,
+        amountUsd: amountUsd || estimate,
+        source: "floe-proxy",
+      });
+      return { ok: true, status, data: hits, amountUsd: event.amountUsd, event };
+    } catch (err) {
+      // No money moved on a failed proxy call — report it, don't fabricate results.
+      return this.fail(502, p.vendor, p.label, {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
   }
 
   /**
@@ -239,7 +221,7 @@ export class FloeClient {
   private async proxySearch(
     vendor: "exa" | "tavily",
     query: string,
-  ): Promise<{ hits: SearchHit[]; amountUsd: number }> {
+  ): Promise<{ hits: SearchHit[]; amountUsd: number; status: number }> {
     // Floe injects the vendor key server-side; we only send the vendor's own payload.
     const url =
       vendor === "exa"
@@ -249,14 +231,14 @@ export class FloeClient {
       vendor === "exa"
         ? { query, numResults: 3, contents: { text: true } }
         : { query, max_results: 3 };
-    const { data, amountUsd } = await this.proxyFetch({
+    const { data, amountUsd, status } = await this.proxyFetch({
       vendor,
       url,
       method: "POST",
       body,
       idempotencyKey: `${this.taskId}:${vendor}:${query}`,
     });
-    return { hits: normalizeSearch(data), amountUsd };
+    return { hits: normalizeSearch(data), amountUsd, status };
   }
 
   private estimateLlm(model: string, req: LlmRequest): number {

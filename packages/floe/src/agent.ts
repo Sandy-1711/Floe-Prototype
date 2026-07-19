@@ -84,8 +84,6 @@ export async function runResearchAgent(
     const planRes = await client.llm({
       label: "plan",
       model: planPick.model,
-      kind: "plan",
-      shimHint: { question },
       request: {
         system:
           "You are a research planner. Given a question, return ONLY a JSON " +
@@ -117,8 +115,12 @@ export async function runResearchAgent(
     );
     const hits: SearchHit[] = [];
     searchResults.forEach((r, i) => {
-      if (r.status === 402) {
-        emit({ type: "blocked", label: `search ${i + 1}`, reason: "spend cap reached" });
+      if (!r.ok) {
+        emit({
+          type: "blocked",
+          label: `search ${i + 1}`,
+          reason: r.status === 402 ? "spend cap reached" : "search failed",
+        });
         return;
       }
       emit({ type: "search", query: queries[i] ?? "", hits: r.data });
@@ -131,8 +133,6 @@ export async function runResearchAgent(
     const synthRes = await client.llm({
       label: "synthesize",
       model: synthPick.model,
-      kind: "synthesize",
-      shimHint: { question, hits },
       request: {
         system:
           "You are a concise voice assistant. Answer in 2-4 spoken sentences " +

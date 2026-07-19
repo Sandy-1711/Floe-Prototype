@@ -2,13 +2,10 @@
 // The whole point of this SDK: the agent calls ONE interface and gets ONE ledger,
 // no matter which vendor settled the money.
 
-export type FloeMode = "real" | "shim";
-
 /** Who actually settled the payment for a call. */
 export type SpendSource =
   | "floe-proxy" // paid through the real Floe x402 proxy
-  | "adapter" //    a Floe-contract-compatible adapter we wrote (e.g. Gemini)
-  | "shim"; //      local simulation, no money moved
+  | "adapter"; //   a Floe-contract-compatible adapter we wrote (e.g. Gemini)
 
 /** A request the agent wants to make to some vendor, expressed once. */
 export interface VendorCall {
