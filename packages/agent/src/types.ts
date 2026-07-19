@@ -31,11 +31,13 @@ export interface Transcript {
   text: string;
   languageCode?: string;
   words: WordTiming[];
+  cost?: number;
 }
 
 export interface Speech {
   audio: Uint8Array;
   contentType: string;
+  cost?: number;
 }
 
 export type AgentAction =

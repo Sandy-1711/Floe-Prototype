@@ -23,9 +23,15 @@ export function createContainer(): Container {
     targetLanguageCode: "en-IN",
   });
   const floeLLM = new FloeLLMProvider(env.floeApiKey, env.geminiModel);
-  const floeStt = new FloeSTTProvider(env.floeApiKey, { languageCode: "en-IN" });
+  const floeStt = new FloeSTTProvider(env.floeApiKey, {
+    languageCode: "en-IN",
+    model: "saaras:v3"
+  });
   const floeTts = new FloeTTSProvider(env.floeApiKey, {
     targetLanguageCode: "en-IN",
+    model: "bulbul:v3",
+    speaker: "shubh",
+    sampleRate: undefined, // optional, can be set to a number if needed
   });
 
   const agent = new ResearchAgent({ llm: floeLLM, search });

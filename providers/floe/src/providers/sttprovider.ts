@@ -60,6 +60,7 @@ export class FloeSTTProvider implements SttProvider {
             throw new Error(`floe proxy stt error: ${res.status} ${await res.text()}`);
         }
 
+        const cost = res.headers.get("X-Floe-Payment-Amount")
 
         const json = (await res.json()) as SttResponse;
 
@@ -67,6 +68,7 @@ export class FloeSTTProvider implements SttProvider {
             text: json.transcript ?? "",
             languageCode: json.language_code ?? undefined,
             words: mapWords(json.timestamps),
+            cost: cost ? parseFloat(cost) : undefined,
         };
     }
 }
