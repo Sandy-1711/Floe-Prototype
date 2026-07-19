@@ -4,7 +4,7 @@ import { GeminiLlmProvider } from "@repo/gemini";
 import { ExaSearchProvider } from "@repo/exa";
 import { SarvamSttProvider, SarvamTtsProvider } from "@repo/sarvam";
 import { env } from "./env.ts";
-import { FloeLLMProvider, FloeSTTProvider, FloeTTSProvider } from "@repo/floe";
+import { FloeLLMProvider, FloeSearchProvider, FloeSTTProvider, FloeTTSProvider } from "@repo/floe";
 
 // Composition root: providers are constructed once here and injected downstream.
 // Swap any implementation (e.g. the Floe-routed providers from @repo/floe) in this
@@ -22,6 +22,9 @@ export function createContainer(): Container {
   const tts = new SarvamTtsProvider(env.sarvamApiKey, {
     targetLanguageCode: "en-IN",
   });
+
+
+
   const floeLLM = new FloeLLMProvider(env.floeApiKey, env.geminiModel);
   const floeStt = new FloeSTTProvider(env.floeApiKey, {
     languageCode: "en-IN",
@@ -33,7 +36,8 @@ export function createContainer(): Container {
     speaker: "shubh",
     sampleRate: undefined, // optional, can be set to a number if needed
   });
+  const floeSearch = new FloeSearchProvider(env.exaApiKey);
 
-  const agent = new ResearchAgent({ llm: floeLLM, search });
+  const agent = new ResearchAgent({ llm: floeLLM, search: floeSearch });
   return { agent, stt: floeStt, tts: floeTts };
 }
