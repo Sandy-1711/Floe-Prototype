@@ -1,5 +1,6 @@
 import type { Speech } from "@repo/agent";
 import { TtsProvider } from "@repo/agent";
+import { fetchProxy } from "../utils/fetchproxy.ts";
 
 interface FloeTTSProviderOptions {
     targetLanguageCode?: string;
@@ -25,30 +26,18 @@ export class FloeTTSProvider implements TtsProvider {
     }
     async synthesize(text: string): Promise<Speech> {
 
-        const res = await fetch("https://credit-api.floelabs.xyz/v1/proxy/fetch", {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${this.#apiKey}`,
-                "Content-Type": "application/json",
-                "Idempotency-Key": crypto.randomUUID()
-            },
-            body: JSON.stringify({
-                url: "https://marketplace.floelabs.xyz/v1/tts/sarvam",
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    "text": text,
-                    "target_language_code": this.#targetLanguageCode,
-                    "speaker": this.#speaker,
-                    "model": this.#model,
-                    ...(this.#sampleRate
-                        ? { speech_sample_rate: this.#sampleRate }
-                        : {}),
-                })
-            }),
-        });
+        const res = await fetchProxy(
+            this.#apiKey,
+            "https://marketplace.floelabs.xyz/v1/tts/sarvam",
+            {
+                text: text,
+                target_language_code: this.#targetLanguageCode,
+                speaker: this.#speaker,
+                model: this.#model,
+                ...(this.#sampleRate ? { speech_sample_rate: this.#sampleRate } : {}),
+            }
+        );
+        
         const cost = res.headers.get("X-Floe-Payment-Amount");
         const json = await res.json();
         return {

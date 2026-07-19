@@ -1,5 +1,6 @@
 import type { SttProvider } from "@repo/agent";
 import type { Transcript, WordTiming } from "@repo/agent";
+import { fetchProxy } from "../utils/fetchproxy.ts";
 
 interface SttResponse {
     transcript?: string;
@@ -39,22 +40,11 @@ export class FloeSTTProvider implements SttProvider {
             ...(this.#opts.languageCode !== undefined && { language_code: this.#opts.languageCode })
         };
 
-        const res = await fetch("https://credit-api.floelabs.xyz/v1/proxy/fetch", {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${this.#apiKey}`,
-                "Content-Type": "application/json",
-                "Idempotency-Key": crypto.randomUUID()
-            },
-            body: JSON.stringify({
-                url: "https://marketplace.floelabs.xyz/v1/stt/sarvam",
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(requestBody)
-            }),
-        });
+        const res = await fetchProxy(
+            this.#apiKey,
+            "https://marketplace.floelabs.xyz/v1/stt/sarvam",
+            requestBody
+        );
 
         if (!res.ok) {
             throw new Error(`floe proxy stt error: ${res.status} ${await res.text()}`);
