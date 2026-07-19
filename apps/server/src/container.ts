@@ -19,7 +19,7 @@ export function createContainer(): Container {
     const llm = new FloeLLMProvider(env.floeApiKey, env.geminiModel);
     const stt = new FloeSTTProvider(env.floeApiKey, {
       languageCode: "en-IN",
-      model: "saaras:v3"
+      model: "nova-3"
     });
     const tts = new FloeTTSProvider(env.floeApiKey, {
       targetLanguageCode: "en-IN",

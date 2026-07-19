@@ -42,7 +42,7 @@ export class FloeSTTProvider implements SttProvider {
 
         const res = await fetchProxy(
             this.#apiKey,
-            "https://marketplace.floelabs.xyz/v1/stt/sarvam",
+            "https://marketplace.floelabs.xyz/v1/stt/deepgram",
             requestBody
         );
 

@@ -9,7 +9,7 @@ export const env = {
   port: Number(process.env.PORT ?? 4111),
   webOrigin: process.env.WEB_ORIGIN ?? "http://localhost:3000",
   geminiApiKey: process.env.GEMINI_API_KEY,
-  geminiModel: process.env.GEMINI_MODEL ?? "gemini-2.5-flash",
+  geminiModel: process.env.GEMINI_MODEL ?? "google/gemini-2.5-flash",
   exaApiKey: process.env.EXA_API_KEY,
   sarvamApiKey: process.env.SARVAM_API_KEY,
   floeApiKey: process.env.FLOE_API_KEY, 
