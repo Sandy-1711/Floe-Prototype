@@ -1,5 +1,4 @@
-import type { LlmProvider } from "../core/ports.ts";
-import type { GenerateRequest, GenerateResult } from "../core/types.ts";
+import type { LlmProvider, GenerateRequest, GenerateResult } from "@repo/agent";
 
 const BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 

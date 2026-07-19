@@ -1,5 +1,4 @@
-import type { SearchProvider } from "../core/ports.ts";
-import type { SearchHit } from "../core/types.ts";
+import type { SearchProvider, SearchHit } from "@repo/agent";
 
 interface ExaResponse {
   results?: Array<{

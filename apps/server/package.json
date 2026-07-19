@@ -10,7 +10,10 @@
   },
   "dependencies": {
     "@hono/node-server": "^2.0.10",
-    "@repo/agent": "workspace:^",
+    "@repo/agent": "workspace:*",
+    "@repo/exa": "workspace:*",
+    "@repo/gemini": "workspace:*",
+    "@repo/sarvam": "workspace:*",
     "dotenv": "^17.4.2",
     "hono": "^4.12.31"
   },

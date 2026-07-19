@@ -61,8 +61,17 @@ importers:
         specifier: ^2.0.10
         version: 2.0.10(hono@4.12.31)
       '@repo/agent':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../packages/agent
+      '@repo/exa':
+        specifier: workspace:*
+        version: link:../../providers/exa
+      '@repo/gemini':
+        specifier: workspace:*
+        version: link:../../providers/gemini
+      '@repo/sarvam':
+        specifier: workspace:*
+        version: link:../../providers/sarvam
       dotenv:
         specifier: ^17.4.2
         version: 17.4.2
@@ -200,6 +209,70 @@ importers:
       typescript:
         specifier: 5.9.2
         version: 5.9.2
+
+  providers/exa:
+    dependencies:
+      '@repo/agent':
+        specifier: workspace:*
+        version: link:../../packages/agent
+    devDependencies:
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../../packages/typescript-config
+      '@types/node':
+        specifier: ^22.15.3
+        version: 22.15.3
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
+  providers/floe:
+    dependencies:
+      '@repo/agent':
+        specifier: workspace:*
+        version: link:../../packages/agent
+    devDependencies:
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../../packages/typescript-config
+      '@types/node':
+        specifier: ^22.15.3
+        version: 22.15.3
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
+  providers/gemini:
+    dependencies:
+      '@repo/agent':
+        specifier: workspace:*
+        version: link:../../packages/agent
+    devDependencies:
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../../packages/typescript-config
+      '@types/node':
+        specifier: ^22.15.3
+        version: 22.15.3
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
+  providers/sarvam:
+    dependencies:
+      '@repo/agent':
+        specifier: workspace:*
+        version: link:../../packages/agent
+    devDependencies:
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../../packages/typescript-config
+      '@types/node':
+        specifier: ^22.15.3
+        version: 22.15.3
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
 
 packages:
 
