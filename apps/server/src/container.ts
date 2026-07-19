@@ -16,7 +16,7 @@ export function createContainer(): Container {
 
   if (env.floeApiKey) {
     const search = new FloeSearchProvider(env.floeApiKey); 
-    const llm = new FloeLLMProvider(env.floeApiKey, env.geminiModel);
+    const llm = new FloeLLMProvider(env.floeApiKey, env.floeModel);
     const stt = new FloeSTTProvider(env.floeApiKey, {
       languageCode: "en-IN",
       model: "nova-3"
