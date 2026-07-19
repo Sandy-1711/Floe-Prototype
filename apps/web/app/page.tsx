@@ -25,7 +25,7 @@ interface Message {
   streaming?: boolean;
 }
 
-const usd = (n: number) => `$${n.toFixed(4)}`;
+const usd = (n: number) => `$${n.toFixed(6)}`;
 
 export default function Page() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -205,9 +205,7 @@ export default function Page() {
                   {m.streaming && <span className={styles.caret} />}
                 </div>
               )}
-              {m.cost !== undefined && (
-                <div className={styles.costRow}>{usd(m.cost)} via Floe</div>
-              )}
+              <div className={styles.costRow}>{usd(m.cost ?? 0)} via Floe</div>
             </div>
           ),
         )}
