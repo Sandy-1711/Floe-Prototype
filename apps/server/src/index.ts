@@ -35,6 +35,17 @@ app.post("/api/agent", async (c) => {
   return stream(c, async (s) => {
     try {
       for await (const event of container.agent.run(question)) {
+        if (event.type === "search") {
+          console.log(
+            `[search] "${event.query}" -> ${event.hits.length} hits · cost ${event.cost ?? "n/a"}`,
+          );
+        } else if (event.type === "cost") {
+          console.log(
+            `[cost] ${event.stage}: $${event.amount.toFixed(6)} (total $${event.total.toFixed(6)})`,
+          );
+        } else if (event.type === "done") {
+          console.log(`[done] total $${event.totalCost.toFixed(6)}`);
+        }
         await s.write(JSON.stringify(event) + "\n");
       }
     } catch (err) {

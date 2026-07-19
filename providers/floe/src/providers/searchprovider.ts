@@ -24,16 +24,20 @@ export class FloeSearchProvider implements SearchProvider {
     });
 
     const cost = res.headers.get("X-Floe-Payment-Amount");
-    const data = (await res.json()) as { body?: string; results?: ExaResult[] };
+    const text = await res.text();
+
+    if (!res.ok) {
+      console.error(`[floe/search] proxy ${res.status}: ${text.slice(0, 300)}`);
+      return { hits: [], cost: cost ? parseFloat(cost) : undefined };
+    }
 
     // The proxy may return Exa's body directly or wrapped as { body: "<json>" }.
-    let payload: { results?: ExaResult[] } = data;
-    if (typeof data.body === "string") {
-      try {
-        payload = JSON.parse(data.body);
-      } catch {
-        /* keep raw */
-      }
+    let payload: { results?: ExaResult[] } = {};
+    try {
+      const data = JSON.parse(text) as { body?: string; results?: ExaResult[] };
+      payload = typeof data.body === "string" ? JSON.parse(data.body) : data;
+    } catch {
+      /* leave empty */
     }
 
     const hits: SearchHit[] = (payload.results ?? []).map((r) => ({
@@ -42,6 +46,9 @@ export class FloeSearchProvider implements SearchProvider {
       snippet: (r.text ?? r.snippet ?? "").replace(/\s+/g, " ").trim().slice(0, 240),
     }));
 
+    console.log(
+      `[floe/search] "${query}" status=${res.status} cost=${cost ?? "none"} hits=${hits.length}`,
+    );
     return { hits, cost: cost ? parseFloat(cost) : undefined };
   }
 }

@@ -17,7 +17,7 @@ export interface ResearchAgentConfig {
 const DECIDE_SYSTEM = `You are a research agent. Each turn, decide your NEXT single action and reply with ONLY one JSON object, nothing before or after:
   {"thought": "<one short sentence>", "action": {"type": "search", "query": "<query>"}}
   {"thought": "<one short sentence>", "action": {"type": "answer"}}
-Use "search" when you still need facts. Use "answer" once the observations are enough. Output exactly one JSON object.`;
+Prefer to "search" at least once for anything factual, current, or specific — only "answer" directly for trivial or conversational questions. Use "answer" once the observations are enough. Output exactly one JSON object.`;
 
 const ANSWER_SYSTEM = `You are a concise voice assistant. Using the observations, answer the question in 2-4 spoken sentences. No markdown, no lists, no citations.`;
 
