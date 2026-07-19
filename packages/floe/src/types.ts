@@ -52,3 +52,25 @@ export interface Usage {
   promptTokens: number;
   completionTokens: number;
 }
+
+/** A simplified LLM request the adapter translates to a vendor's native schema. */
+export interface LlmRequest {
+  system?: string;
+  prompt: string;
+  maxOutputTokens?: number;
+  /** Ask the model to return a single JSON object. */
+  json?: boolean;
+}
+
+export interface LlmResponse {
+  text: string;
+  usage: Usage;
+  model: string;
+}
+
+/** One web-search hit, normalized across search vendors. */
+export interface SearchHit {
+  title: string;
+  url: string;
+  snippet: string;
+}
