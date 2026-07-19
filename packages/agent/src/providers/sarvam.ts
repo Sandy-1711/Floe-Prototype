@@ -26,9 +26,12 @@ export class SarvamSttProvider implements SttProvider {
   ) {}
 
   async transcribe(audio: Uint8Array, mimeType: string): Promise<Transcript> {
+    // Sarvam validates against bare MIME types, so drop any ";codecs=..." suffix
+    // that MediaRecorder attaches (e.g. "audio/webm;codecs=opus").
+    const baseType = mimeType.split(";")[0] || "audio/webm";
     const form = new FormData();
-    const blob = new Blob([new Uint8Array(audio)], { type: mimeType });
-    form.append("file", blob, filename(mimeType));
+    const blob = new Blob([new Uint8Array(audio)], { type: baseType });
+    form.append("file", blob, filename(baseType));
     form.append("model", this.opts.model ?? "saaras:v3");
     form.append("language_code", this.opts.languageCode ?? "unknown");
 
