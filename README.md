@@ -42,7 +42,7 @@ for another model, or wrapping a provider to meter or pay for its calls, is a ch
 **Prerequisites:** Node ≥ 18 and pnpm 9 (`corepack enable`).
 
 ```bash
-git clone <repo> && cd Floe-Prototype
+git clone <repo> && cd <repo>
 pnpm install
 cp .env.example .env          # then fill in the three keys
 ```
