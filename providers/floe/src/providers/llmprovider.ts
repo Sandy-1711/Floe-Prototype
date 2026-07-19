@@ -2,6 +2,11 @@ import type { GenerateRequest, GenerateResult } from "@repo/agent";
 import { LlmProvider } from "@repo/agent";
 import OpenAI from "openai";
 
+export interface EstimateResponse {
+    cost_usdc: number;
+    provider: string;
+    rail: string;
+}
 
 export class FloeLLMProvider implements LlmProvider {
 
@@ -46,5 +51,18 @@ export class FloeLLMProvider implements LlmProvider {
                 completionTokens: res.usage?.completion_tokens ?? 0,
             }
         }
+    }
+
+    async estimate(req: GenerateRequest): Promise<EstimateResponse> {
+        const res = await fetch("https://credit-api.floelabs.xyz/v1/estimate", {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${this.#apiKey}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ "model": this.#model, "input_tokens": 1200, "output_tokens": 400 }),
+        });
+        const json = await res.json();
+        return json;
     }
 }
