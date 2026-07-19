@@ -18,7 +18,11 @@ export class FloeSearchProvider implements SearchProvider {
                 url: "https://api.exa.ai/search",
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ "query": "latest developments in AI agent frameworks", "type": "auto", "numResults": 5 }),
+                body: JSON.stringify({
+                    "query": query,
+                    "type": "auto",
+                    "numResults": limit ?? 5
+                }),
             }),
         });
 
