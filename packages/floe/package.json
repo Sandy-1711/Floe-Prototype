@@ -1,0 +1,20 @@
+{
+  "name": "@repo/floe",
+  "version": "0.1.0",
+  "description": "A tiny, framework-agnostic client for paying vendor API calls through Floe's x402 proxy, with a drop-in Gemini adapter and a budget-aware spend guard.",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./server": "./src/server.ts"
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit",
+    "demo": "node --experimental-strip-types --env-file=../../.env src/demo.ts"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:^",
+    "@types/node": "^22.15.3",
+    "typescript": "^7.0.2"
+  }
+}
