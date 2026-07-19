@@ -8,8 +8,11 @@ export interface SearchHit {
 
 export type AgentEvent =
   | { type: "thought"; step: number; text: string }
-  | { type: "search"; step: number; query: string; hits: SearchHit[] }
+  | { type: "search"; step: number; query: string; hits: SearchHit[]; cost?: number }
+  | { type: "delta"; text: string }
   | { type: "answer"; text: string }
+  | { type: "cost"; stage: string; amount: number; total: number }
+  | { type: "done"; totalCost: number }
   | { type: "error"; message: string };
 
 export interface Transcript {

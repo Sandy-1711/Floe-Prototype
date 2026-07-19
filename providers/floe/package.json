@@ -1,5 +1,5 @@
 {
-  "name": "@repo/agent",
+  "name": "@repo/floe",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -9,8 +9,12 @@
   "scripts": {
     "check-types": "tsc --noEmit"
   },
+  "dependencies": {
+    "@repo/agent": "workspace:*",
+    "openai": "^6.48.0"
+  },
   "devDependencies": {
-    "@repo/typescript-config": "workspace:^",
+    "@repo/typescript-config": "workspace:*",
     "@types/node": "^22.15.3",
     "typescript": "^7.0.2"
   }

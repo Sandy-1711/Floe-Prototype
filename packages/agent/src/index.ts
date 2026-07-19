@@ -1,2 +1,3 @@
-export * from "./core/index.ts";
-export * from "./providers/index.ts";
+export * from "./types.ts";
+export * from "./ports.ts";
+export { ResearchAgent, type ResearchAgentConfig } from "./agent.ts";

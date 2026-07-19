@@ -5,17 +5,15 @@ import { fileURLToPath } from "node:url";
 const here = dirname(fileURLToPath(import.meta.url));
 config({ path: resolve(here, "../../../.env") });
 
-function required(name: string): string {
-  const value = process.env[name];
-  if (!value) throw new Error(`missing env var: ${name}`);
-  return value;
-}
-
 export const env = {
   port: Number(process.env.PORT ?? 4111),
   webOrigin: process.env.WEB_ORIGIN ?? "http://localhost:3000",
-  geminiApiKey: required("GEMINI_API_KEY"),
+  geminiApiKey: process.env.GEMINI_API_KEY,
+  // Direct Gemini path wants the bare model id; the Floe path wants an
+  // OpenAI-style provider-prefixed id. They are separate on purpose.
   geminiModel: process.env.GEMINI_MODEL ?? "gemini-2.5-flash",
-  exaApiKey: required("EXA_API_KEY"),
-  sarvamApiKey: required("SARVAM_API_KEY"),
+  exaApiKey: process.env.EXA_API_KEY,
+  sarvamApiKey: process.env.SARVAM_API_KEY,
+  floeApiKey: process.env.FLOE_API_KEY,
+  floeModel: process.env.FLOE_MODEL ?? "google/gemini-2.5-flash",
 };
