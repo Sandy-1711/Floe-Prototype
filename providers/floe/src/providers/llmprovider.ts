@@ -34,26 +34,33 @@ export class FloeLLMProvider implements LlmProvider {
         return {
             text: data.choices[0]?.message.content ?? "",
             usage,
-            cost: await this.#cost(response, usage),
+            cost: this.#cost(response),
         };
     }
 
     async *generateStream(
         req: GenerateRequest,
     ): AsyncGenerator<string, GenerateMeta> {
-        const stream = await this.#client.chat.completions.create({
-            model: this.model,
-            messages: this.#messages(req),
-            max_tokens: req.maxOutputTokens ?? req.maxTokens,
-            stream: true,
-            stream_options: { include_usage: true },
-            ...(req.temperature !== undefined && { temperature: req.temperature }),
-        });
+        const { data: stream, response } = await this.#client.chat.completions
+            .create({
+                model: this.model,
+                messages: this.#messages(req),
+                max_tokens: req.maxOutputTokens ?? req.maxTokens,
+                stream: true,
+                stream_options: { include_usage: true },
+                ...(req.temperature !== undefined && { temperature: req.temperature }),
+            })
+            .withResponse();
 
         let usage = { promptTokens: 0, completionTokens: 0 };
+        let chunks = 0;
+        const started = Date.now();
         for await (const chunk of stream) {
             const delta = chunk.choices[0]?.delta?.content;
-            if (delta) yield delta;
+            if (delta) {
+                chunks++;
+                yield delta;
+            }
             if (chunk.usage) {
                 usage = {
                     promptTokens: chunk.usage.prompt_tokens ?? 0,
@@ -61,8 +68,8 @@ export class FloeLLMProvider implements LlmProvider {
                 };
             }
         }
-        const cost = await this.#estimate(usage.promptTokens, usage.completionTokens);
-        return { usage, cost };
+        console.log(`[floe/llm] stream: ${chunks} chunks in ${Date.now() - started}ms`);
+        return { usage, cost: this.#cost(response) };
     }
 
     #messages(req: GenerateRequest): OpenAI.Chat.ChatCompletionMessageParam[] {
@@ -72,19 +79,16 @@ export class FloeLLMProvider implements LlmProvider {
         return messages;
     }
 
-    // Prefer Floe's payment header; fall back to a free estimate on the real usage.
-    async #cost(
-        response: Response,
-        usage: { promptTokens: number; completionTokens: number },
-    ): Promise<number | undefined> {
+    // Read Floe's actual charge from the payment header. (#estimate is kept below
+    // for manual use but is no longer part of the cost path.)
+    #cost(response: Response): number | undefined {
         const header = response.headers.get("x-floe-payment-amount");
-        if (header) {
-            console.log(`[floe/llm] cost from HEADER: $${header}`);
-            return parseFloat(header);
+        if (!header) {
+            console.log(`[floe/llm] no payment header`);
+            return undefined;
         }
-        const est = await this.#estimate(usage.promptTokens, usage.completionTokens);
-        console.log(`[floe/llm] cost from ESTIMATE: $${est ?? "n/a"}`);
-        return est;
+        console.log(`[floe/llm] cost from HEADER: $${header}`);
+        return parseFloat(header);
     }
 
     async #estimate(
