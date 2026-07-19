@@ -61,7 +61,8 @@ export class FloeLLMProvider implements LlmProvider {
                 };
             }
         }
-        return { usage, cost: await this.#estimate(usage.promptTokens, usage.completionTokens) };
+        const cost = await this.#estimate(usage.promptTokens, usage.completionTokens);
+        return { usage, cost };
     }
 
     #messages(req: GenerateRequest): OpenAI.Chat.ChatCompletionMessageParam[] {
@@ -77,8 +78,13 @@ export class FloeLLMProvider implements LlmProvider {
         usage: { promptTokens: number; completionTokens: number },
     ): Promise<number | undefined> {
         const header = response.headers.get("x-floe-payment-amount");
-        if (header) return parseFloat(header);
-        return this.#estimate(usage.promptTokens, usage.completionTokens);
+        if (header) {
+            console.log(`[floe/llm] cost from HEADER: $${header}`);
+            return parseFloat(header);
+        }
+        const est = await this.#estimate(usage.promptTokens, usage.completionTokens);
+        console.log(`[floe/llm] cost from ESTIMATE: $${est ?? "n/a"}`);
+        return est;
     }
 
     async #estimate(

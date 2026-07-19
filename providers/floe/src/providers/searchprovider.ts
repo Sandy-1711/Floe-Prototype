@@ -46,9 +46,6 @@ export class FloeSearchProvider implements SearchProvider {
       snippet: (r.text ?? r.snippet ?? "").replace(/\s+/g, " ").trim().slice(0, 240),
     }));
 
-    console.log(
-      `[floe/search] "${query}" status=${res.status} cost=${cost ?? "none"} hits=${hits.length}`,
-    );
     return { hits, cost: cost ? parseFloat(cost) : undefined };
   }
 }
