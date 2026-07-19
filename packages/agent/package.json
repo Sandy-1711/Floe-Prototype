@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/agent.ts"
+    ".": "./src/index.ts",
+    "./core": "./src/core/index.ts",
+    "./providers": "./src/providers/index.ts"
   },
   "scripts": {
     "check-types": "tsc --noEmit"

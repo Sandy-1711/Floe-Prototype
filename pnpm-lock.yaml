@@ -92,6 +92,18 @@ importers:
         specifier: 5.9.2
         version: 5.9.2
 
+  packages/agent:
+    devDependencies:
+      '@repo/typescript-config':
+        specifier: workspace:^
+        version: link:../typescript-config
+      '@types/node':
+        specifier: ^22.15.3
+        version: 22.15.3
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
   packages/eslint-config:
     devDependencies:
       '@eslint/js':
@@ -127,18 +139,6 @@ importers:
       typescript-eslint:
         specifier: ^8.50.0
         version: 8.50.0(eslint@9.39.1)(typescript@5.9.2)
-
-  packages/floe:
-    devDependencies:
-      '@repo/typescript-config':
-        specifier: workspace:^
-        version: link:../typescript-config
-      '@types/node':
-        specifier: ^22.15.3
-        version: 22.15.3
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
 
   packages/typescript-config: {}
 

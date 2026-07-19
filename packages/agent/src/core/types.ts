@@ -1,0 +1,54 @@
+export interface SearchHit {
+  title: string;
+  url: string;
+  snippet: string;
+}
+
+export interface GenerateRequest {
+  system?: string;
+  prompt: string;
+  json?: boolean;
+  maxOutputTokens?: number;
+}
+
+export interface GenerateResult {
+  text: string;
+  usage?: { promptTokens: number; completionTokens: number };
+}
+
+export interface WordTiming {
+  word: string;
+  start: number;
+  end: number;
+}
+
+export interface Transcript {
+  text: string;
+  languageCode?: string;
+  words: WordTiming[];
+}
+
+export interface Speech {
+  audio: Uint8Array;
+  contentType: string;
+}
+
+export type AgentAction =
+  | { type: "search"; query: string }
+  | { type: "answer"; text: string };
+
+export interface AgentDecision {
+  thought: string;
+  action: AgentAction;
+}
+
+export type AgentEvent =
+  | { type: "thought"; step: number; text: string }
+  | { type: "search"; step: number; query: string; hits: SearchHit[] }
+  | { type: "answer"; text: string }
+  | { type: "error"; message: string };
+
+export interface AgentResult {
+  answer: string;
+  steps: number;
+}
