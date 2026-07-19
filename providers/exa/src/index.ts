@@ -1,4 +1,4 @@
-import type { SearchProvider, SearchHit } from "@repo/agent";
+import type { SearchProvider, SearchResults } from "@repo/agent";
 
 interface ExaResponse {
   results?: Array<{
@@ -9,9 +9,9 @@ interface ExaResponse {
 }
 
 export class ExaSearchProvider implements SearchProvider {
-  constructor(private readonly apiKey: string) {}
+  constructor(private readonly apiKey: string) { }
 
-  async search(query: string, limit = 3): Promise<SearchHit[]> {
+  async search(query: string, limit = 3): Promise<SearchResults> {
     const res = await fetch("https://api.exa.ai/search", {
       method: "POST",
       headers: {
@@ -29,10 +29,13 @@ export class ExaSearchProvider implements SearchProvider {
     }
 
     const json = (await res.json()) as ExaResponse;
-    return (json.results ?? []).map((r) => ({
-      title: r.title ?? r.url ?? "(untitled)",
-      url: r.url ?? "",
-      snippet: (r.text ?? "").replace(/\s+/g, " ").trim().slice(0, 240),
-    }));
+    return {
+      hits: (json.results ?? []).map((r) => ({
+        title: r.title ?? r.url ?? "(untitled)",
+        url: r.url ?? "",
+        snippet: (r.text ?? "").replace(/\s+/g, " ").trim().slice(0, 240),
+      })),
+      cost: undefined,
+    };
   }
 }

@@ -2,6 +2,7 @@ import type {
   GenerateRequest,
   GenerateResult,
   SearchHit,
+  SearchResults,
   Speech,
   Transcript,
 } from "./types.ts";
@@ -12,7 +13,7 @@ export interface LlmProvider {
 }
 
 export interface SearchProvider {
-  search(query: string, limit?: number): Promise<SearchHit[]>;
+  search(query: string, limit?: number): Promise<SearchResults>;
 }
 
 export interface SttProvider {

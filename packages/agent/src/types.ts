@@ -4,6 +4,11 @@ export interface SearchHit {
   snippet: string;
 }
 
+export interface SearchResults {
+  hits: SearchHit[];
+  cost?: number;
+}
+
 export interface GenerateRequest {
   system?: string;
   prompt: string;
