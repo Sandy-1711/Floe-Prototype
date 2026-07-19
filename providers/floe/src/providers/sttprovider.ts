@@ -47,7 +47,7 @@ export class FloeSTTProvider implements SttProvider {
                 "Idempotency-Key": crypto.randomUUID()
             },
             body: JSON.stringify({
-                url: "https://marketplace.floelabs.xyz/v1/stt-translate/sarvam",
+                url: "https://marketplace.floelabs.xyz/v1/stt/sarvam",
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
