@@ -12,6 +12,7 @@
     "@hono/node-server": "^2.0.10",
     "@repo/agent": "workspace:*",
     "@repo/exa": "workspace:*",
+    "@repo/floe": "workspace:*",
     "@repo/gemini": "workspace:*",
     "@repo/sarvam": "workspace:*",
     "dotenv": "^17.4.2",

@@ -18,4 +18,5 @@ export const env = {
   geminiModel: process.env.GEMINI_MODEL ?? "gemini-2.5-flash",
   exaApiKey: required("EXA_API_KEY"),
   sarvamApiKey: required("SARVAM_API_KEY"),
+  floeApiKey: required("FLOE_API_KEY"),
 };

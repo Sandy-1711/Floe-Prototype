@@ -8,3 +8,5 @@
 //
 // Auth is the funded Floe key only: `Authorization: Bearer $FLOE_KEY`.
 export * from "./providers/llmprovider.ts";
+export * from "./providers/sttprovider.ts";
+export * from "./providers/ttsprovider.ts";

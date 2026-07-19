@@ -66,6 +66,9 @@ importers:
       '@repo/exa':
         specifier: workspace:*
         version: link:../../providers/exa
+      '@repo/floe':
+        specifier: workspace:*
+        version: link:../../providers/floe
       '@repo/gemini':
         specifier: workspace:*
         version: link:../../providers/gemini
