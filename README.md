@@ -9,6 +9,10 @@ The agent never learns about Floe. Floe is a set of **adapters** behind the four
 agent already depends on — wired in at one line. Read this to plug Floe into an agent of your own in one
 sitting.
 
+<p align="center">
+  <img src="docs/screenshot.png" alt="The Floe Voice Agent web UI — mic and text input, the live agent trace (thoughts and searches), and the per-call cost metered via Floe" width="760">
+</p>
+
 ---
 
 ## The shape of the integration
@@ -113,6 +117,21 @@ Two patterns cover all four:
 
 **Cost comes back on every response** in the `X-Floe-Payment-Amount` header (USDC). Each adapter parses it
 into the `cost` field on its result; the agent sums those into `cost`/`done` events; the UI renders them.
+
+A single question, as the server logs it — every provider call's real charge, read from the header and
+summed live:
+
+```text
+[floe/llm] cost from HEADER: $0.000195
+[cost] reason: $0.000195 (total $0.000195)
+[search] "FIFA World Cup 2026 dates" -> 3 hits · cost 0.00735
+[cost] search: $0.007350 (total $0.007545)
+[floe/llm] cost from HEADER: $0.000235
+[cost] reason: $0.000235 (total $0.007780)
+[floe/llm] stream: 2 chunks in 2ms
+[floe/llm] no payment header
+[done] total $0.007780
+```
 
 ---
 
