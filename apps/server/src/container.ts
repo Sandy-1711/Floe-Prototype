@@ -6,9 +6,6 @@ import { SarvamSttProvider, SarvamTtsProvider } from "@repo/sarvam";
 import { env } from "./env.ts";
 import { FloeLLMProvider, FloeSearchProvider, FloeSTTProvider, FloeTTSProvider } from "@repo/floe";
 
-// Composition root: providers are constructed once here and injected downstream.
-// Swap any implementation (e.g. the Floe-routed providers from @repo/floe) in this
-// file only — core and the agent never change.
 export interface Container {
   agent: ResearchAgent;
   stt: SttProvider;
@@ -16,28 +13,45 @@ export interface Container {
 }
 
 export function createContainer(): Container {
-  const llm = new GeminiLlmProvider(env.geminiApiKey, env.geminiModel);
-  const search = new ExaSearchProvider(env.exaApiKey);
-  const stt = new SarvamSttProvider(env.sarvamApiKey, { languageCode: "en-IN" });
-  const tts = new SarvamTtsProvider(env.sarvamApiKey, {
+
+  if (env.floeApiKey) {
+    const search = new FloeSearchProvider(env.floeApiKey); 
+    const llm = new FloeLLMProvider(env.floeApiKey, env.geminiModel);
+    const stt = new FloeSTTProvider(env.floeApiKey, {
+      languageCode: "en-IN",
+      model: "saaras:v3"
+    });
+    const tts = new FloeTTSProvider(env.floeApiKey, {
+      targetLanguageCode: "en-IN",
+      model: "bulbul:v3",
+      speaker: "shubh",
+      sampleRate: undefined,
+    });
+
+    const agent = new ResearchAgent({ llm, search });
+    return { agent, stt, tts };
+  }
+
+  console.warn("FLOE_API_KEY not set, falling back to individual Gemini, Exa, and Sarvam providers.");
+
+  const missingKeys: string[] = [];
+  if (!env.geminiApiKey) missingKeys.push("GEMINI_API_KEY");
+  if (!env.exaApiKey) missingKeys.push("EXA_API_KEY");
+  if (!env.sarvamApiKey) missingKeys.push("SARVAM_API_KEY");
+
+  if (missingKeys.length > 0) {
+    throw new Error(
+      `Missing API keys. Please set FLOE_API_KEY, OR provide the missing fallback keys: ${missingKeys.join(", ")}`
+    );
+  }
+
+  const search = new ExaSearchProvider(env.exaApiKey as string);
+  const llm = new GeminiLlmProvider(env.geminiApiKey as string, env.geminiModel);
+  const stt = new SarvamSttProvider(env.sarvamApiKey as string, { languageCode: "en-IN" });
+  const tts = new SarvamTtsProvider(env.sarvamApiKey as string, {
     targetLanguageCode: "en-IN",
   });
 
-
-
-  const floeLLM = new FloeLLMProvider(env.floeApiKey, env.geminiModel);
-  const floeStt = new FloeSTTProvider(env.floeApiKey, {
-    languageCode: "en-IN",
-    model: "saaras:v3"
-  });
-  const floeTts = new FloeTTSProvider(env.floeApiKey, {
-    targetLanguageCode: "en-IN",
-    model: "bulbul:v3",
-    speaker: "shubh",
-    sampleRate: undefined, // optional, can be set to a number if needed
-  });
-  const floeSearch = new FloeSearchProvider(env.exaApiKey);
-
-  const agent = new ResearchAgent({ llm: floeLLM, search: floeSearch });
-  return { agent, stt: floeStt, tts: floeTts };
+  const agent = new ResearchAgent({ llm, search });
+  return { agent, stt, tts };
 }
