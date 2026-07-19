@@ -1,12 +1,10 @@
 {
-  "name": "@repo/floe",
+  "name": "@repo/agent",
   "version": "0.1.0",
-  "description": "A tiny, framework-agnostic client for paying vendor API calls through Floe's x402 proxy, with a drop-in Gemini adapter and a budget-aware spend guard.",
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./server": "./src/server.ts"
+    ".": "./src/agent.ts"
   },
   "scripts": {
     "check-types": "tsc --noEmit"
@@ -15,8 +13,5 @@
     "@repo/typescript-config": "workspace:^",
     "@types/node": "^22.15.3",
     "typescript": "^7.0.2"
-  },
-  "dependencies": {
-    "floe-agent": "^0.5.1"
   }
 }
