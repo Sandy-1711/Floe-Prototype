@@ -1,15 +1,12 @@
-import { ResearchAgent } from "@repo/agent/core";
-import type { SttProvider, TtsProvider } from "@repo/agent/core";
-import {
-  ExaSearchProvider,
-  GeminiLlmProvider,
-  SarvamSttProvider,
-  SarvamTtsProvider,
-} from "@repo/agent/providers";
+import { ResearchAgent } from "@repo/agent";
+import type { SttProvider, TtsProvider } from "@repo/agent";
+import { GeminiLlmProvider } from "@repo/gemini";
+import { ExaSearchProvider } from "@repo/exa";
+import { SarvamSttProvider, SarvamTtsProvider } from "@repo/sarvam";
 import { env } from "./env.ts";
 
 // Composition root: providers are constructed once here and injected downstream.
-// Swap any implementation (e.g. wrap a provider to pay through Floe) in this file only.
+// Swap any implementation in this file only — nothing above depends on the choice.
 export interface Container {
   agent: ResearchAgent;
   stt: SttProvider;

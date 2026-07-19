@@ -12,7 +12,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Floe Voice Agent",
+  title: "Voice Research Agent",
   description: "A budget-aware voice research agent",
 };
 

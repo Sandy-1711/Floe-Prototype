@@ -1,5 +1,5 @@
-import type { SttProvider, TtsProvider } from "../core/ports.ts";
-import type { Speech, Transcript, WordTiming } from "../core/types.ts";
+import type { SttProvider, TtsProvider } from "@repo/agent";
+import type { Speech, Transcript, WordTiming } from "@repo/agent";
 
 const STT_URL = "https://api.sarvam.ai/speech-to-text";
 const TTS_URL = "https://api.sarvam.ai/text-to-speech";
